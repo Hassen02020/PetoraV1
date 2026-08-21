@@ -1,9 +1,9 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Heart } from "lucide-react"
 import { StarRating } from "@/components/ui/StarRating"
 import { Badge } from "@/components/ui/Badge"
 import { AddToCartButton } from "@/components/product/AddToCartButton"
+import { WishlistButton } from "@/components/product/WishlistButton"
 import { formatPrice, cn } from "@/lib/utils"
 import type { ProductCardData } from "@/lib/types"
 
@@ -36,13 +36,7 @@ export function ProductCard({ product, className }: { product: ProductCardData; 
             -{discountPct}%
           </Badge>
         )}
-        <button
-          type="button"
-          aria-label="Add to wishlist"
-          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-ink-500 hover:text-coral"
-        >
-          <Heart size={16} />
-        </button>
+        <WishlistButton productId={product.id} />
       </Link>
 
       <div className="mt-3 flex flex-1 flex-col gap-1">

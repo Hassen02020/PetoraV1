@@ -1,8 +1,9 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Heart, ShoppingBag } from "lucide-react"
+import { Heart } from "lucide-react"
 import { StarRating } from "@/components/ui/StarRating"
 import { Badge } from "@/components/ui/Badge"
+import { AddToCartButton } from "@/components/product/AddToCartButton"
 import { formatPrice, cn } from "@/lib/utils"
 import type { ProductCardData } from "@/lib/types"
 
@@ -62,13 +63,7 @@ export function ProductCard({ product, className }: { product: ProductCardData; 
               </span>
             )}
           </div>
-          <button
-            type="button"
-            aria-label="Add to cart"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-forest text-white transition-colors hover:bg-forest-700"
-          >
-            <ShoppingBag size={16} />
-          </button>
+          <AddToCartButton variantId={product.defaultVariantId} />
         </div>
       </div>
     </div>

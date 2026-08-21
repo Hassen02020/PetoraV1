@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { label: "Deals", href: "/deals" },
 ]
 
-export function Header() {
+export function Header({ cartCount = 0 }: { cartCount?: number }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -73,6 +73,11 @@ export function Header() {
           </Link>
           <Link href="/cart" className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-600 hover:bg-ink-50" aria-label="Cart">
             <ShoppingBag size={20} />
+            {cartCount > 0 && (
+              <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-coral px-1 text-[10px] font-semibold text-white">
+                {cartCount}
+              </span>
+            )}
           </Link>
         </div>
       </div>

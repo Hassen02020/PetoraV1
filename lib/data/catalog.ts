@@ -76,13 +76,15 @@ type ProductRow = {
   review_count: number
   pet_type: "dog" | "cat" | "both"
   brands: { name: string } | { name: string }[] | null
-  product_variants: { price_cents: number; compare_at_price_cents: number | null; is_default: boolean }[]
+  product_variants: { id: string; price_cents: number; compare_at_price_cents: number | null; is_default: boolean }[]
   product_images: { url: string; sort_order: number }[]
 }
 
 function mapProductRow(p: ProductRow): ProductCardData {
   const variant =
-    p.product_variants.find((v) => v.is_default) ?? p.product_variants[0] ?? { price_cents: 0, compare_at_price_cents: null }
+    p.product_variants.find((v) => v.is_default) ??
+    p.product_variants[0] ??
+    { id: null, price_cents: 0, compare_at_price_cents: null }
   const image = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order)[0]
   const brand = Array.isArray(p.brands) ? p.brands[0] : p.brands
 
@@ -97,11 +99,12 @@ function mapProductRow(p: ProductRow): ProductCardData {
     priceCents: variant.price_cents,
     compareAtPriceCents: variant.compare_at_price_cents,
     petType: p.pet_type,
+    defaultVariantId: variant.id,
   }
 }
 
 const PRODUCT_CARD_SELECT =
-  "id, slug, name, avg_rating, review_count, pet_type, brands(name), product_variants(price_cents, compare_at_price_cents, is_default), product_images(url, sort_order)"
+  "id, slug, name, avg_rating, review_count, pet_type, brands(name), product_variants(id, price_cents, compare_at_price_cents, is_default), product_images(url, sort_order)"
 
 export async function getBestSellers(limit = 8): Promise<ProductCardData[]> {
   return safe("getBestSellers", async () => {
@@ -160,6 +163,70 @@ export async function searchProducts(query: string, limit = 24): Promise<Product
       .select(PRODUCT_CARD_SELECT)
       .eq("status", "active")
       .ilike("name", `%${query}%`)
+      .limit(limit)
+
+    if (error) throw error
+
+    return (data as unknown as ProductRow[]).map(mapProductRow)
+  }, [])
+}
+
+export async function getDeals(limit = 24): Promise<ProductCardData[]> {
+  return safe("getDeals", async () => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("products")
+      .select(PRODUCT_CARD_SELECT)
+      .eq("status", "active")
+      .limit(200)
+
+    if (error) throw error
+
+    return (data as unknown as ProductRow[])
+      .map(mapProductRow)
+      .filter((p) => p.compareAtPriceCents != null && p.compareAtPriceCents > p.priceCents)
+      .slice(0, limit)
+  }, [])
+}
+
+export async function getCategoryBySlug(slug: string): Promise<CategoryCardData | null> {
+  return safe("getCategoryBySlug", async () => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, slug, name, image_url")
+      .eq("slug", slug)
+      .eq("is_active", true)
+      .single()
+
+    if (error || !data) return null
+    return { id: data.id, slug: data.slug, name: data.name, imageUrl: data.image_url }
+  }, null)
+}
+
+export async function getBrandBySlug(slug: string): Promise<BrandCardData | null> {
+  return safe("getBrandBySlug", async () => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("brands")
+      .select("id, slug, name, logo_url")
+      .eq("slug", slug)
+      .eq("is_active", true)
+      .single()
+
+    if (error || !data) return null
+    return { id: data.id, slug: data.slug, name: data.name, logoUrl: data.logo_url }
+  }, null)
+}
+
+export async function getProductsByBrand(brandSlug: string, limit = 24): Promise<ProductCardData[]> {
+  return safe("getProductsByBrand", async () => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("products")
+      .select(`${PRODUCT_CARD_SELECT}, brands!inner(slug)`)
+      .eq("status", "active")
+      .eq("brands.slug", brandSlug)
       .limit(limit)
 
     if (error) throw error

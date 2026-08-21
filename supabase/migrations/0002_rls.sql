@@ -25,6 +25,28 @@ create policy "profiles_select_own" on profiles for select using (id = auth.uid(
 create policy "profiles_update_own" on profiles for update using (id = auth.uid()) with check (id = auth.uid());
 create policy "profiles_insert_own" on profiles for insert with check (id = auth.uid());
 
+-- profiles_update_own only restricts *which row* a customer can touch, not
+-- which columns — without this, a customer could PATCH their own row's
+-- `role` to 'admin' directly via PostgREST using nothing but their own
+-- session token, since `id = auth.uid()` is satisfied either way.
+create or replace function prevent_role_self_escalation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.role is distinct from old.role and not is_admin() then
+    new.role := old.role;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_profiles_prevent_role_escalation
+  before update on profiles
+  for each row execute function prevent_role_self_escalation();
+
 alter table admin_users enable row level security;
 create policy "admin_users_admin_only" on admin_users for all using (is_admin()) with check (is_admin());
 
@@ -173,6 +195,45 @@ create policy "reviews_public_read" on reviews for select using (status = 'appro
 create policy "reviews_owner_insert" on reviews for insert with check (customer_id = auth.uid());
 create policy "reviews_admin_update" on reviews for update using (is_admin() or customer_id = auth.uid());
 create policy "reviews_admin_delete" on reviews for delete using (is_admin());
+
+-- The insert/update policies above only check row ownership, not which
+-- values land in `status` / `is_verified_purchase` — without this trigger a
+-- customer could insert or edit their own review with status='approved'
+-- directly via PostgREST, skipping admin moderation entirely (and forging
+-- a "Verified Purchase" badge they didn't earn).
+create or replace function guard_review_moderation_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if is_admin() then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    new.status := 'pending';
+    new.is_verified_purchase := exists (
+      select 1
+      from order_items
+      join orders on orders.id = order_items.order_id
+      join product_variants on product_variants.id = order_items.variant_id
+      where orders.customer_id = new.customer_id
+        and product_variants.product_id = new.product_id
+    );
+  else
+    new.status := old.status;
+    new.is_verified_purchase := old.is_verified_purchase;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger trg_reviews_guard_moderation_fields
+  before insert or update on reviews
+  for each row execute function guard_review_moderation_fields();
 
 alter table wishlists enable row level security;
 create policy "wishlists_owner_all" on wishlists for all using (customer_id = auth.uid() or is_admin()) with check (customer_id = auth.uid());

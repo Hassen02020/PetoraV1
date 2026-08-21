@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { getBlogPost, BLOG_POSTS } from "@/lib/blog-data"
+import { safeJsonLd } from "@/lib/utils"
 
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }))
@@ -36,7 +37,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   return (
     <article className="container max-w-2xl py-10">
       {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
 
       <Link href="/blog" className="text-sm text-forest hover:underline">
         ← Back to Blog

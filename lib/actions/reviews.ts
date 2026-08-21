@@ -28,22 +28,15 @@ export async function createReviewAction(_prevState: ReviewActionState, formData
   } = await supabase.auth.getUser()
   if (!user) return { error: "Sign in to write a review." }
 
-  // order_items link to variants, not products directly, so verify purchase via that join.
-  const { data: verifiedRows } = await supabase
-    .from("order_items")
-    .select("id, orders!inner(customer_id), product_variants!inner(product_id)")
-    .eq("orders.customer_id", user.id)
-    .eq("product_variants.product_id", parsed.data.productId)
-    .limit(1)
-
+  // status and is_verified_purchase are ignored here on purpose — the
+  // guard_review_moderation_fields DB trigger computes/enforces both
+  // authoritatively so a direct API call can't forge either one.
   const { error } = await supabase.from("reviews").insert({
     product_id: parsed.data.productId,
     customer_id: user.id,
     rating: parsed.data.rating,
     title: parsed.data.title || null,
     body: parsed.data.body || null,
-    is_verified_purchase: (verifiedRows?.length ?? 0) > 0,
-    status: "pending",
   })
 
   if (error) return { error: "Could not submit review." }

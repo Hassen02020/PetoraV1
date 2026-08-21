@@ -8,6 +8,7 @@ import { ProductGrid } from "@/components/product/ProductGrid"
 import { getProductBySlug, getRelatedProducts, getApprovedReviews } from "@/lib/data/product"
 import { createClient } from "@/lib/supabase/server"
 import { ProductViewTracker } from "@/components/product/ProductViewTracker"
+import { safeJsonLd } from "@/lib/utils"
 
 export async function generateMetadata({
   params,
@@ -82,9 +83,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <div className="container py-10 pb-28 lg:pb-10">
       <ProductViewTracker id={product.id} name={product.name} priceCents={lowestPrice} />
       {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbLd) }} />
 
       <div className="grid gap-10 lg:grid-cols-2">
         <ProductGallery images={product.images} alt={product.name} />

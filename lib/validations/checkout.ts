@@ -16,6 +16,7 @@ export const checkoutSchema = z.object({
   postalCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Enter a valid US ZIP code."),
   phone: z.string().optional(),
   shippingMethod: z.enum(["standard", "express"]),
+  couponCode: z.string().optional(),
 })
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>

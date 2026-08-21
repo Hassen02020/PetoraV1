@@ -44,6 +44,7 @@ export async function createPetAction(_prevState: PetActionState, formData: Form
   if (error) return { error: "Could not save pet." }
 
   revalidatePath("/account/pets")
+  revalidatePath("/pet-profile")
   return { success: true }
 }
 
@@ -51,4 +52,5 @@ export async function deletePetAction(petId: string) {
   const supabase = await createClient()
   await supabase.from("pets").delete().eq("id", petId)
   revalidatePath("/account/pets")
+  revalidatePath("/pet-profile")
 }

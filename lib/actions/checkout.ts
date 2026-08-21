@@ -5,6 +5,7 @@ import { getStripe } from "@/lib/stripe"
 import { getCart } from "@/lib/data/cart"
 import { createClient } from "@/lib/supabase/server"
 import { checkoutSchema } from "@/lib/validations/checkout"
+import { validateCoupon } from "@/lib/coupons"
 
 const FREE_SHIPPING_THRESHOLD_CENTS = 4900
 const STANDARD_SHIPPING_CENTS = 699
@@ -31,6 +32,7 @@ export async function createCheckoutSessionAction(
     postalCode: formData.get("postalCode"),
     phone: formData.get("phone") || undefined,
     shippingMethod: formData.get("shippingMethod") || "standard",
+    couponCode: formData.get("couponCode") || undefined,
   })
 
   if (!parsed.success) {
@@ -47,7 +49,7 @@ export async function createCheckoutSessionAction(
     return { error: "Remove out-of-stock items before checking out." }
   }
 
-  const shippingCents = computeShippingCents(parsed.data.shippingMethod, cart.subtotalCents)
+  let shippingCents = computeShippingCents(parsed.data.shippingMethod, cart.subtotalCents)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 
   const supabase = await createClient()
@@ -55,8 +57,29 @@ export async function createCheckoutSessionAction(
     data: { user },
   } = await supabase.auth.getUser()
 
+  let stripeCouponId: string | null = null
+  let appliedCouponId: string | null = null
+
   try {
     const stripe = getStripe()
+
+    if (parsed.data.couponCode) {
+      const { coupon, error } = await validateCoupon(parsed.data.couponCode, cart.subtotalCents, user?.id ?? null)
+      if (error) return { error }
+      if (coupon) {
+        appliedCouponId = coupon.id
+        if (coupon.type === "free_shipping") {
+          shippingCents = 0
+        } else {
+          const stripeCoupon = await stripe.coupons.create(
+            coupon.type === "percentage"
+              ? { percent_off: coupon.value, duration: "once" }
+              : { amount_off: Math.round(coupon.value * 100), currency: "usd", duration: "once" }
+          )
+          stripeCouponId = stripeCoupon.id
+        }
+      }
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -81,6 +104,7 @@ export async function createCheckoutSessionAction(
           },
         },
       ],
+      ...(stripeCouponId ? { discounts: [{ coupon: stripeCouponId }] } : {}),
       success_url: `${siteUrl}/checkout/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/checkout`,
       metadata: {
@@ -93,6 +117,7 @@ export async function createCheckoutSessionAction(
         city: parsed.data.city,
         state: parsed.data.state,
         postal_code: parsed.data.postalCode,
+        coupon_id: appliedCouponId ?? "",
       },
     })
 

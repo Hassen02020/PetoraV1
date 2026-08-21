@@ -95,6 +95,14 @@ export function CheckoutForm({ defaultEmail }: { defaultEmail?: string }) {
       </section>
 
       <section>
+        <h2 className="font-display text-lg font-semibold text-ink">Coupon</h2>
+        <div className="mt-3">
+          <Label htmlFor="couponCode">Coupon Code (optional)</Label>
+          <Input id="couponCode" name="couponCode" placeholder="WELCOME30" className="uppercase" />
+        </div>
+      </section>
+
+      <section>
         <h2 className="font-display text-lg font-semibold text-ink">Payment</h2>
         <p className="mt-2 text-sm text-ink-500">
           You&apos;ll enter your card, Apple Pay, or Google Pay details securely on the next step. PETORA never

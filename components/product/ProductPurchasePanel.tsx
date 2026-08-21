@@ -7,8 +7,11 @@ import { StarRating } from "@/components/ui/StarRating"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { addToCartAction } from "@/lib/actions/cart"
+import { createAutoshipCheckoutAction } from "@/lib/actions/autoship"
 import { formatPrice, cn } from "@/lib/utils"
 import type { ProductDetailData } from "@/lib/types"
+
+const FREQUENCIES = [2, 4, 6, 8]
 
 export function ProductPurchasePanel({ product }: { product: ProductDetailData }) {
   const router = useRouter()
@@ -17,6 +20,7 @@ export function ProductPurchasePanel({ product }: { product: ProductDetailData }
   )
   const [quantity, setQuantity] = useState(1)
   const [purchaseType, setPurchaseType] = useState<"one_time" | "subscribe">("one_time")
+  const [frequencyWeeks, setFrequencyWeeks] = useState(4)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -45,6 +49,15 @@ export function ProductPurchasePanel({ product }: { product: ProductDetailData }
       }
       router.push(redirectToCheckout ? "/checkout" : "/cart")
       router.refresh()
+    })
+  }
+
+  function handleStartAutoship() {
+    if (!selectedVariant) return
+    setError(null)
+    startTransition(async () => {
+      const result = await createAutoshipCheckoutAction(selectedVariant.id, quantity, frequencyWeeks)
+      if (result?.error) setError(result.error)
     })
   }
 
@@ -130,6 +143,29 @@ export function ProductPurchasePanel({ product }: { product: ProductDetailData }
             </span>
             <Badge variant="coral">Best Value</Badge>
           </label>
+
+          {purchaseType === "subscribe" && (
+            <div className="pl-1 pt-1">
+              <span className="mb-1.5 block text-xs font-medium text-ink-500">Delivery every</span>
+              <div className="flex gap-2">
+                {FREQUENCIES.map((weeks) => (
+                  <button
+                    key={weeks}
+                    type="button"
+                    onClick={() => setFrequencyWeeks(weeks)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium",
+                      frequencyWeeks === weeks
+                        ? "border-forest bg-forest text-white"
+                        : "border-ink-200 text-ink-600 hover:border-forest"
+                    )}
+                  >
+                    {weeks} weeks
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -160,25 +196,33 @@ export function ProductPurchasePanel({ product }: { product: ProductDetailData }
 
       {error && <p className="mt-3 text-sm text-coral-600">{error}</p>}
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <Button
-          size="lg"
-          variant="outline"
-          className="flex-1"
-          disabled={isPending || !selectedVariant?.inStock}
-          onClick={() => handleAddToCart(false)}
-        >
-          Add to Cart
-        </Button>
-        <Button
-          size="lg"
-          className="flex-1"
-          disabled={isPending || !selectedVariant?.inStock}
-          onClick={() => handleAddToCart(true)}
-        >
-          Buy Now
-        </Button>
-      </div>
+      {purchaseType === "subscribe" ? (
+        <div className="mt-6">
+          <Button size="lg" className="w-full" disabled={isPending || !selectedVariant?.inStock} onClick={handleStartAutoship}>
+            Start Autoship
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button
+            size="lg"
+            variant="outline"
+            className="flex-1"
+            disabled={isPending || !selectedVariant?.inStock}
+            onClick={() => handleAddToCart(false)}
+          >
+            Add to Cart
+          </Button>
+          <Button
+            size="lg"
+            className="flex-1"
+            disabled={isPending || !selectedVariant?.inStock}
+            onClick={() => handleAddToCart(true)}
+          >
+            Buy Now
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

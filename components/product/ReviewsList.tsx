@@ -1,13 +1,43 @@
+import Link from "next/link"
 import { StarRating } from "@/components/ui/StarRating"
 import { Badge } from "@/components/ui/Badge"
+import { ReviewForm } from "@/components/product/ReviewForm"
 import type { ReviewData } from "@/lib/types"
 
-export function ReviewsList({ reviews, rating, count }: { reviews: ReviewData[]; rating: number; count: number }) {
+export function ReviewsList({
+  productId,
+  reviews,
+  rating,
+  count,
+  isSignedIn,
+}: {
+  productId: string
+  reviews: ReviewData[]
+  rating: number
+  count: number
+  isSignedIn: boolean
+}) {
   return (
     <div className="mt-12 border-t border-ink-100 pt-8">
       <div className="flex items-center gap-3">
         <h2 className="font-display text-lg font-semibold text-ink">Customer Reviews</h2>
         <StarRating rating={rating} count={count} />
+      </div>
+
+      <div className="mt-6 max-w-md rounded-2xl border border-ink-100 bg-white p-5">
+        <h3 className="text-sm font-semibold text-ink">Write a Review</h3>
+        {isSignedIn ? (
+          <div className="mt-3">
+            <ReviewForm productId={productId} />
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-ink-500">
+            <Link href="/login" className="font-medium text-forest hover:underline">
+              Sign in
+            </Link>{" "}
+            to write a review.
+          </p>
+        )}
       </div>
 
       {reviews.length === 0 ? (

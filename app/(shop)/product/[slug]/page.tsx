@@ -6,6 +6,7 @@ import { ProductInfo } from "@/components/product/ProductInfo"
 import { ReviewsList } from "@/components/product/ReviewsList"
 import { ProductGrid } from "@/components/product/ProductGrid"
 import { getProductBySlug, getRelatedProducts, getApprovedReviews } from "@/lib/data/product"
+import { createClient } from "@/lib/supabase/server"
 
 export async function generateMetadata({
   params,
@@ -32,9 +33,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProductBySlug(slug)
   if (!product) notFound()
 
-  const [related, reviews] = await Promise.all([
+  const supabase = await createClient()
+  const [related, reviews, { data: { user } }] = await Promise.all([
     getRelatedProducts(product.categorySlug, product.id),
     getApprovedReviews(product.id),
+    supabase.auth.getUser(),
   ])
 
   const lowestPrice = Math.min(...product.variants.map((v) => v.priceCents))
@@ -70,7 +73,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </div>
 
       <ProductInfo product={product} />
-      <ReviewsList reviews={reviews} rating={product.rating} count={product.reviewCount} />
+      <ReviewsList
+        productId={product.id}
+        reviews={reviews}
+        rating={product.rating}
+        count={product.reviewCount}
+        isSignedIn={Boolean(user)}
+      />
 
       {related.length > 0 && (
         <div className="mt-12 border-t border-ink-100 pt-8">

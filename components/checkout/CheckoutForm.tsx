@@ -6,6 +6,7 @@ import { Input, Label } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Button } from "@/components/ui/Button"
 import { US_STATES } from "@/lib/validations/checkout"
+import { trackAddPaymentInfo } from "@/lib/analytics"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -16,11 +17,11 @@ function SubmitButton() {
   )
 }
 
-export function CheckoutForm({ defaultEmail }: { defaultEmail?: string }) {
+export function CheckoutForm({ defaultEmail, totalCents }: { defaultEmail?: string; totalCents: number }) {
   const [state, formAction] = useFormState<CheckoutActionState, FormData>(createCheckoutSessionAction, undefined)
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} onSubmit={() => trackAddPaymentInfo(totalCents)} className="space-y-6">
       <section>
         <h2 className="font-display text-lg font-semibold text-ink">Customer</h2>
         <div className="mt-3">

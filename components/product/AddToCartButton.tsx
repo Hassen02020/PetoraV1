@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { ShoppingBag, Check } from "lucide-react"
 import { addToCartAction } from "@/lib/actions/cart"
+import { trackAddToCart } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 
 export function AddToCartButton({
@@ -10,11 +11,13 @@ export function AddToCartButton({
   quantity = 1,
   className,
   label,
+  trackingItem,
 }: {
   variantId: string | null
   quantity?: number
   className?: string
   label?: string
+  trackingItem?: { name: string; priceCents: number }
 }) {
   const [isPending, startTransition] = useTransition()
   const [justAdded, setJustAdded] = useState(false)
@@ -27,6 +30,9 @@ export function AddToCartButton({
       if (result.success) {
         setJustAdded(true)
         setTimeout(() => setJustAdded(false), 1500)
+        if (trackingItem) {
+          trackAddToCart({ id: variantId, name: trackingItem.name, priceCents: trackingItem.priceCents, quantity })
+        }
       }
     })
   }

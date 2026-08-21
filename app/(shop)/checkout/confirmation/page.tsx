@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { CheckCircle2 } from "lucide-react"
 import { ButtonLink } from "@/components/ui/Button"
+import { PurchaseTracker } from "@/components/analytics/PurchaseTracker"
 import { getOrderByStripeSessionId } from "@/lib/data/orders"
 import { formatPrice } from "@/lib/utils"
 
@@ -31,6 +32,7 @@ export default async function CheckoutConfirmationPage({
 
   return (
     <div className="container py-16">
+      <PurchaseTracker orderId={order.orderNumber} valueCents={order.totalCents} items={order.items} />
       <div className="mx-auto max-w-lg text-center">
         <CheckCircle2 className="mx-auto text-forest" size={48} />
         <h1 className="mt-4 font-display text-2xl font-bold text-ink">Thank you for your order!</h1>

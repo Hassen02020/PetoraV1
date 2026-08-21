@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { ProductGrid } from "@/components/product/ProductGrid"
+import { SearchTracker } from "@/components/analytics/SearchTracker"
 import { searchProducts } from "@/lib/data/catalog"
 
 export const metadata: Metadata = { title: "Search" }
@@ -14,10 +15,13 @@ export default async function SearchPage({
   const products = query ? await searchProducts(query) : []
 
   return (
-    <ProductGrid
-      title={query ? `Results for "${query}"` : "Search"}
-      products={products}
-      emptyMessage={query ? "No products matched your search." : "Enter a search term to find products."}
-    />
+    <>
+      <SearchTracker query={query} />
+      <ProductGrid
+        title={query ? `Results for "${query}"` : "Search"}
+        products={products}
+        emptyMessage={query ? "No products matched your search." : "Enter a search term to find products."}
+      />
+    </>
   )
 }

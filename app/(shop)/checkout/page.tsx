@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import type { Metadata } from "next"
 import Image from "next/image"
 import { CheckoutForm } from "@/components/checkout/CheckoutForm"
+import { CheckoutTracker } from "@/components/analytics/CheckoutTracker"
 import { getCart } from "@/lib/data/cart"
 import { createClient } from "@/lib/supabase/server"
 import { formatPrice } from "@/lib/utils"
@@ -20,9 +21,13 @@ export default async function CheckoutPage() {
   return (
     <div className="container py-10">
       <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Checkout</h1>
+      <CheckoutTracker
+        items={cart.items.map((i) => ({ id: i.variantId, name: i.productName, priceCents: i.unitPriceCents, quantity: i.quantity }))}
+        valueCents={cart.subtotalCents}
+      />
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_360px]">
-        <CheckoutForm defaultEmail={user?.email} />
+        <CheckoutForm defaultEmail={user?.email} totalCents={cart.subtotalCents} />
 
         <div className="h-fit rounded-2xl border border-ink-100 bg-white p-6">
           <h2 className="font-display text-lg font-semibold text-ink">Order Summary</h2>

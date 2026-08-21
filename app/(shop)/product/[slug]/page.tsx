@@ -7,6 +7,7 @@ import { ReviewsList } from "@/components/product/ReviewsList"
 import { ProductGrid } from "@/components/product/ProductGrid"
 import { getProductBySlug, getRelatedProducts, getApprovedReviews } from "@/lib/data/product"
 import { createClient } from "@/lib/supabase/server"
+import { ProductViewTracker } from "@/components/product/ProductViewTracker"
 
 export async function generateMetadata({
   params,
@@ -54,6 +55,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       product.reviewCount > 0
         ? { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviewCount }
         : undefined,
+    review: reviews.slice(0, 5).map((r) => ({
+      "@type": "Review",
+      reviewRating: { "@type": "Rating", ratingValue: r.rating },
+      author: { "@type": "Person", name: r.authorName ?? "PETORA Customer" },
+      reviewBody: r.body ?? undefined,
+    })),
     offers: {
       "@type": "Offer",
       priceCurrency: "USD",
@@ -62,10 +69,22 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
   }
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
+      { "@type": "ListItem", position: 2, name: product.name },
+    ],
+  }
+
   return (
-    <div className="container py-10">
+    <div className="container py-10 pb-28 lg:pb-10">
+      <ProductViewTracker id={product.id} name={product.name} priceCents={lowestPrice} />
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* eslint-disable-next-line react/no-danger */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       <div className="grid gap-10 lg:grid-cols-2">
         <ProductGallery images={product.images} alt={product.name} />

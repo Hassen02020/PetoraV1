@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { addToCartAction } from "@/lib/actions/cart"
 import { createAutoshipCheckoutAction } from "@/lib/actions/autoship"
+import { trackAddToCart } from "@/lib/analytics"
 import { formatPrice, cn } from "@/lib/utils"
 import type { ProductDetailData } from "@/lib/types"
 
@@ -47,6 +48,7 @@ export function ProductPurchasePanel({ product }: { product: ProductDetailData }
         setError(result.error ?? "Something went wrong.")
         return
       }
+      trackAddToCart({ id: selectedVariant.id, name: product.name, priceCents: selectedVariant.priceCents, quantity })
       router.push(redirectToCheckout ? "/checkout" : "/cart")
       router.refresh()
     })
@@ -197,13 +199,13 @@ export function ProductPurchasePanel({ product }: { product: ProductDetailData }
       {error && <p className="mt-3 text-sm text-coral-600">{error}</p>}
 
       {purchaseType === "subscribe" ? (
-        <div className="mt-6">
+        <div className="mt-6 hidden lg:block">
           <Button size="lg" className="w-full" disabled={isPending || !selectedVariant?.inStock} onClick={handleStartAutoship}>
             Start Autoship
           </Button>
         </div>
       ) : (
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-6 hidden flex-col gap-3 sm:flex-row lg:flex">
           <Button
             size="lg"
             variant="outline"
@@ -223,6 +225,20 @@ export function ProductPurchasePanel({ product }: { product: ProductDetailData }
           </Button>
         </div>
       )}
+
+      {/* Sticky mobile add-to-cart bar */}
+      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-ink-100 bg-white p-3 lg:hidden">
+        <span className="shrink-0 text-base font-semibold text-ink">{formatPrice(displayPriceCents)}</span>
+        {purchaseType === "subscribe" ? (
+          <Button className="flex-1" disabled={isPending || !selectedVariant?.inStock} onClick={handleStartAutoship}>
+            Start Autoship
+          </Button>
+        ) : (
+          <Button className="flex-1" disabled={isPending || !selectedVariant?.inStock} onClick={() => handleAddToCart(false)}>
+            Add to Cart
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

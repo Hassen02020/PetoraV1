@@ -57,7 +57,10 @@ export function ProductCard({ product, className }: { product: ProductCardData; 
               </span>
             )}
           </div>
-          <AddToCartButton variantId={product.defaultVariantId} />
+          <AddToCartButton
+            variantId={product.defaultVariantId}
+            trackingItem={{ name: product.name, priceCents: product.priceCents }}
+          />
         </div>
       </div>
     </div>

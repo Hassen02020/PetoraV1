@@ -6,6 +6,7 @@ export const CART_COOKIE = "petora_cart_id"
 export type CartItemData = {
   id: string
   variantId: string
+  sku: string
   productSlug: string
   productName: string
   variantLabel: string | null
@@ -35,7 +36,7 @@ export async function getCart(): Promise<CartData> {
       .from("cart_items")
       .select(
         `id, quantity, variant_id,
-         product_variants(id, size, flavor, price_cents,
+         product_variants(id, sku, size, flavor, price_cents,
            products(slug, name),
            product_images(url, sort_order),
            inventory(quantity_available))`
@@ -53,6 +54,7 @@ export async function getCart(): Promise<CartData> {
       return {
         id: row.id,
         variantId: row.variant_id,
+        sku: variant?.sku ?? "",
         productSlug: product?.slug ?? "",
         productName: product?.name ?? "Product",
         variantLabel: [variant?.size, variant?.flavor].filter(Boolean).join(" / ") || null,

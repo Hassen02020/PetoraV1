@@ -91,7 +91,7 @@ export async function createCheckoutSessionAction(
           unit_amount: item.unitPriceCents,
           product_data: {
             name: item.productName + (item.variantLabel ? ` — ${item.variantLabel}` : ""),
-            metadata: { variant_id: item.variantId, sku: item.productSlug },
+            metadata: { variant_id: item.variantId, sku: item.sku },
           },
         },
       })),

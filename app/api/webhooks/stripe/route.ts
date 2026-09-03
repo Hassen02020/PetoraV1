@@ -122,16 +122,15 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       total_cents: (variant?.price_cents ?? 0) * item.quantity,
     })
 
-    const { data: inv } = await supabase
-      .from("inventory")
-      .select("quantity_available")
-      .eq("variant_id", item.variant_id)
-      .single()
-    if (inv) {
-      await supabase
-        .from("inventory")
-        .update({ quantity_available: Math.max(0, inv.quantity_available - item.quantity) })
-        .eq("variant_id", item.variant_id)
+    const { data: decremented, error: decrementError } = await supabase.rpc("decrement_inventory", {
+      p_variant_id: item.variant_id,
+      p_quantity: item.quantity,
+    })
+    if (decrementError || !decremented) {
+      console.error(
+        `handleInvoicePaid: inventory decrement failed for variant ${item.variant_id} (insufficient stock or missing row)`,
+        decrementError?.message
+      )
     }
   }
 
@@ -218,9 +217,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   if (meta.coupon_id) {
-    const { data: couponRow } = await supabase.from("coupons").select("usage_count").eq("id", meta.coupon_id).single()
-    if (couponRow) {
-      await supabase.from("coupons").update({ usage_count: couponRow.usage_count + 1 }).eq("id", meta.coupon_id)
+    const { data: incremented, error: incrementError } = await supabase.rpc("increment_coupon_usage", {
+      p_coupon_id: meta.coupon_id,
+    })
+    if (incrementError || !incremented) {
+      console.error(
+        `handleCheckoutCompleted: coupon usage increment failed for coupon ${meta.coupon_id} (limit reached or missing row)`,
+        incrementError?.message
+      )
     }
   }
 
@@ -244,17 +248,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (variantId) {
       variantIds.push(variantId)
-      const { data: inv } = await supabase
-        .from("inventory")
-        .select("quantity_available")
-        .eq("variant_id", variantId)
-        .single()
-
-      if (inv) {
-        await supabase
-          .from("inventory")
-          .update({ quantity_available: Math.max(0, inv.quantity_available - (line.quantity ?? 1)) })
-          .eq("variant_id", variantId)
+      const { data: decremented, error: decrementError } = await supabase.rpc("decrement_inventory", {
+        p_variant_id: variantId,
+        p_quantity: line.quantity ?? 1,
+      })
+      if (decrementError || !decremented) {
+        console.error(
+          `handleCheckoutCompleted: inventory decrement failed for variant ${variantId} (insufficient stock or missing row)`,
+          decrementError?.message
+        )
       }
     }
   }
